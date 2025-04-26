@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>原神マップ：瞳・宝箱</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    #map {
+      height: 100%;
+    }
+
+    .controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 8px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      max-width: 400px;
+    }
+
+    .controls select, .controls button, .controls input {
+      margin: 3px;
+      padding: 6px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #f0f0f0;
+      cursor: pointer;
+    }
+
+    .controls select:focus, .controls button:focus, .controls input:focus {
+      outline: none;
+      border-color: #888;
+    }
+
+    .map-selector {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      max-width: 350px;
+      width: 90%;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .map-selector strong {
+      margin-right: 10px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .map-selector select {
+      padding: 6px;
+      font-size: 18px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #f0f0f0;
+      cursor: pointer;
+      flex-grow: 1;
+      width: 250px;
+      margin: 5px 0;
+    }
+
+    .map-selector select:focus {
+      outline: none;
+      border-color: #888;
+    }
+
+    #inazuma-sub-select, #liyue-sub-select, #mond-sub-select, #layer-select {
+      display: none;
+      width: 250px;
+      margin: 5px 0;
+    }
+
+    .counts {
+      margin-top: 10px;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .count-row {
+      display: flex;
+      gap: 15px;
+    }
+
+    .count-row span {
+      flex: 1;
+      text-align: center;
+    }
+
+    .total-marks {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .video-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2000;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      max-width: 90%;
+      max-height: 90%;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .video-popup iframe {
+      max-width: 100%;
+      max-height: 60vh;
+      width: 560px;
+      height: 315px;
+    }
+
+    .video-popup .notes {
+      margin-top: 10px;
+      font-size: 14px;
+      max-width: 100%;
+      word-wrap: break-word;
+      text-align: left;
+    }
+
+    .video-popup .close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #f0f0f0;
+      font-size: 14px;
+    }
+
+    .video-popup .close-button:hover {
+      background: #e0e0e0;
+    }
+
+    @media screen and (max-width: 600px) {
+      .controls {
+        padding: 6px;
+      }
+      .controls select, .controls button, .controls input {
+        padding: 5px;
+        font-size: 12px;
+        width: 100px;
+      }
+      .map-selector {
+        max-width: 95%;
+        padding: 8px;
+      }
+      .map-selector strong {
+        font-size: 12px;
+      }
+      .map-selector select {
+        font-size: 14px;
+        padding: 8px;
+        width: 200px;
+      }
+      #inazuma-sub-select, #liyue-sub-select, #mond-sub-select, #layer-select {
+        width: 200px;
+      }
+      .counts {
+        font-size: 12px;
+      }
+      .count-row {
+        gap: 10px;
+      }
+      .total-marks {
+        font-size: 12px;
+      }
+      .video-popup {
+        padding: 10px;
+      }
+      .video-popup iframe {
+        max-height: 50vh;
+        width: 100%;
+        height: calc(100vw * 9 / 16);
+      }
+      .video-popup .notes {
+        font-size: 12px;
+      }
+      .video-popup .close-button {
+        font-size: 12px;
+        padding: 3px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="controls">
+    <strong>ピン選択：</strong>
+    <select id="pin-type" onchange="setCurrentType(this.value)">
+      <option value="hujin">瞳</option>
+      <option value="takara_hutu">普通の宝箱</option>
+      <option value="takara_seikou">精巧な宝箱</option>
+      <option value="takara_kityou">貴重な宝箱</option>
+      <option value="takara_gouka">豪華な宝箱</option>
+      <option value="takara_tinnmyou">珍奇な宝箱</option>
+    </select>
+    <div class="counts">
+      <div class="count-row">
+        <span>瞳: <span id="hujin-count">0</span></span>
+        <span>普通: <span id="takara-hutu-count">0</span></span>
+        <span>精巧: <span id="takara-seikou-count">0</span></span>
+      </div>
+      <div class="count-row">
+        <span>貴重: <span id="takara-kityou-count">0</span></span>
+        <span>豪華: <span id="takara-gouka-count">0</span></span>
+        <span>珍奇: <span id="takara-tinnmyou-count">0</span></span>
+      </div>
+    </div>
+    <div class="total-marks">
+      印数の合計: <span id="total-marks">0</span>
+    </div>
+  </div>
+
+  <div class="map-selector">
+    <strong>マップ切替：</strong>
+    <select id="map-select" onchange="handleMapSelect(this.value)">
+      <option value="mond">モンド</option>
+      <option value="liyue">璃月</option>
+      <option value="inazuma">稲妻</option>
+      <option value="sumeru">スメール</option>
+      <option value="fontaine">フォンテーヌ</option>
+      <option value="natlan">ナタ</option>
+    </select>
+    <select id="mond-sub-select" onchange="switchMap(this.value)">
+      <option value="mond">モンド</option>
+      <option value="dragonspine">ドラゴンスパイン</option>
+    </select>
+    <select id="liyue-sub-select" onchange="switchMap(this.value)">
+      <option value="liyue1">璃月1</option>
+      <option value="liyue2">璃月2</option>
+      <option value="chenyu">沈玉</option>
+    </select>
+    <select id="inazuma-sub-select" onchange="switchMap(this.value)">
+      <option value="inazuma">稲妻</option>
+      <option value="inazuma2">稲妻2</option>
+      <option value="amakumo">天雲峠</option>
+      <option value="sangonomiya">海祇島</option>
+    </select>
+    <strong>レイヤー選択：</strong>
+    <select id="layer-select" onchange="switchLayer(this.value)">
+      <option value="sky">天空</option>
+      <option value="ground">地上</option>
+      <option value="underground1">地下1</option>
+      <option value="underground2">地下2</option>
+    </select>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -5,
+      maxZoom: 2,
+      zoomSnap: 0.1,
+      zoomDelta: 1.0
+    });
+
+    const maps = {
+      mond: { 
+        layers: {
+          sky: { url: 'images/mond_map_sky.jpg', size: [3000, 1722] },
+          ground: { url: 'images/mond_map.jpg', size: [3000, 1722] },
+          underground1: { url: 'images/mond_map_underground1.jpg', size: [3000, 1722] },
+          underground2: { url: 'images/mond_map_underground2.jpg', size: [3000, 1722] }
+        }
+      },
+      dragonspine: { 
+        layers: {
+          sky: { url: 'images/Dragon_sky.jpg', fallback: 'images/Dragon.jpg', size: [2746, 2500] },
+          ground: { url: 'images/Dragon.jpg', size: [2746, 2500] },
+          underground1: { url: 'images/Dragon_underground1.jpg', fallback: 'images/Dragon.jpg', size: [2746, 2500] },
+          underground2: { url: 'images/Dragon_underground2.jpg', fallback: 'images/Dragon.jpg', size: [2746, 2500] }
+        }
+      },
+      liyue1: { 
+        layers: {
+          sky: { url: 'images/liyue1_sky.jpg', size: [3000, 1722] },
+          ground: { url: 'images/liyue1.jpg', size: [3000, 1722] },
+          underground1: { url: 'images/liyue1_underground1.jpg', size: [3000, 1722] },
+          underground2: { url: 'images/liyue1_underground2.jpg', size: [3000, 1722] }
+        }
+      },
+      liyue2: { 
+        layers: {
+          sky: { url: 'images/liyue2_sky.jpg', size: [3000, 1722] },
+          ground: { url: 'images/liyue2.jpg', size: [3000, 1722] },
+          underground1: { url: 'images/liyue2_underground1.jpg', size: [3000, 1722] },
+          underground2: { url: 'images/liyue2_underground2.jpg', size: [3000, 1722] }
+        }
+      },
+      chenyu: { 
+        layers: {
+          sky: { url: 'images/thingyoku_sky.jpg', size: [2658, 1722] },
+          ground: { url: 'images/thingyoku.jpg', size: [2658, 1722] },
+          underground1: { url: 'images/thingyoku_underground1.jpg', size: [2658, 1722] },
+          underground2: { url: 'images/thingyoku_underground2.jpg', size: [2658, 1722] }
+        }
+      },
+      inazuma: { 
+        layers: {
+          sky: { url: 'images/inazuma1_sky.png', size: [3000, 3190] },
+          ground: { url: 'images/inazuma1.png', size: [3000, 3190] },
+          underground1: { url: 'images/inazuma1_underground1.png', size: [3000, 3190] },
+          underground2: { url: 'images/inazuma1_underground2.png', size: [3000, 3190] }
+        }
+      },
+      inazuma2: { 
+        layers: {
+          sky: { url: 'images/inazuma2_sky.png', size: [3970, 2140] },
+          ground: { url: 'images/inazuma2.png', size: [3970, 2140] },
+          underground1: { url: 'images/inazuma2_underground1.png', size: [3970, 2140] },
+          underground2: { url: 'images/inazuma2_underground2.png', size: [3970, 2140] }
+        }
+      },
+      amakumo: { 
+        layers: {
+          sky: { url: 'images/amakumo_sky.png', size: [2231, 1715] },
+          ground: { url: 'images/amakumo.png', size: [2231, 1715] },
+          underground1: { url: 'images/amakumo_underground1.png', size: [2231, 1715] },
+          underground2: { url: 'images/amakumo_underground2.png', size: [2231, 1715] }
+        }
+      },
+      sangonomiya: { 
+        layers: {
+          sky: { url: 'images/sangonomiya_sky.png', size: [2262, 1519] },
+          ground: { url: 'images/sangonomiya.png', size: [2262, 1519] },
+          underground1: { url: 'images/sangonomiya_underground1.png', size: [2262, 1519] },
+          underground2: { url: 'images/sangonomiya_underground2.png', size: [2262, 1519] }
+        }
+      },
+      sumeru: { 
+        layers: {
+          sky: { url: 'images/sumeru_sky.jpg', size: [3000, 1722] },
+          ground: { url: 'images/sumeru.jpg', size: [3000, 1722] },
+          underground1: { url: 'images/sumeru_underground1.jpg', size: [3000, 1722] },
+          underground2: { url: 'images/sumeru_underground2.jpg', size: [3000, 1722] }
+        }
+      },
+      fontaine: { 
+        layers: {
+          sky: { url: 'images/fontaine_sky.jpg', size: [3000, 1722] },
+          ground: { url: 'images/fontaine.jpg', size: [3000, 1722] },
+          underground1: { url: 'images/fontaine_underground1.jpg', size: [3000, 1722] },
+          underground2: { url: 'images/fontaine_underground2.jpg', size: [3000, 1722] }
+        }
+      },
+      natlan: { 
+        layers: {
+          sky: { url: 'images/natlan_sky.jpg', size: [3000, 1722] },
+          ground: { url: 'images/natlan.jpg', size: [3000, 1722] },
+          underground1: { url: 'images/natlan_underground1.jpg', size: [3000, 1722] },
+          underground2: { url: 'images/natlan_underground2.jpg', size: [3000, 1722] }
+        }
+      }
+    };
+
+    let currentMap = 'mond';
+    let currentLayer = 'ground';
+    let currentType = 'hujin';
+    let overlay, imageBounds;
+    let counts = {
+      hujin: 0,
+      takara_hutu: 0,
+      takara_seikou: 0,
+      takara_kityou: 0,
+      takara_gouka: 0,
+      takara_tinnmyou: 0
+    };
+
+    const markValues = {
+      takara_hutu: 1,
+      takara_seikou: 2,
+      takara_kityou: 3,
+      takara_gouka: 4,
+      takara_tinnmyou: 0,
+      hujin: 0
+    };
+
+    const baseIconSize = 40;
+
+    function createNumberedIcon(type, number = '', size = baseIconSize) {
+      let imageUrl = '';
+      if (type === 'hujin') {
+        if (currentMap === 'mond') imageUrl = 'images/hujin.jpg';
+        else if (currentMap === 'dragonspine') imageUrl = 'images/Crimson_Agate.jpg';
+        else if (currentMap === 'chenyu') imageUrl = 'images/Spirit_Carp.jpg';
+        else if (['inazuma', 'inazuma2', 'amakumo', 'sangonomiya'].includes(currentMap)) {
+          imageUrl = 'images/inazumahitomi.png';
+        } else {
+          imageUrl = 'images/iwagami.jpg';
+        }
+      } else if (type === 'takara_hutu') {
+        imageUrl = 'images/hutu.png';
+      } else if (type === 'takara_seikou') {
+        imageUrl = 'images/seikou.png';
+      } else if (type === 'takara_kityou') {
+        imageUrl = 'images/kityou.png';
+      } else if (type === 'takara_gouka') {
+        imageUrl = 'images/gouka.png';
+      } else if (type === 'takara_tinnmyou') {
+        imageUrl = 'images/tinnmyou.png';
+      }
+
+      return L.divIcon({
+        html: `
+          <div style="
+            position: relative;
+            width: ${size}px;
+            height: ${size}px;
+            background: url('${imageUrl}') no-repeat center center / contain;
+          ">
+            <span style="
+              position: absolute;
+              bottom: -10px;
+              left: 50%;
+              transform: translateX(-50%);
+              font-size: 10px;
+              background: rgba(255,255,255,0.8);
+              padding: 0 2px;
+              border-radius: 4px;
+            ">${number}</span>
+          </div>
+        `,
+        iconSize: [size, size],
+        className: ''
+      });
+    }
+
+    const markerLayer = L.layerGroup().addTo(map);
+
+    function handleMapSelect(value) {
+      const inazumaSubSelect = document.getElementById('inazuma-sub-select');
+      const liyueSubSelect = document.getElementById('liyue-sub-select');
+      const mondSubSelect = document.getElementById('mond-sub-select');
+      const layerSelect = document.getElementById('layer-select');
+
+      inazumaSubSelect.style.display = 'none';
+      liyueSubSelect.style.display = 'none';
+      mondSubSelect.style.display = 'none';
+      layerSelect.style.display = 'block';
+
+      if (value === 'inazuma') {
+        inazumaSubSelect.style.display = 'block';
+        switchMap('inazuma');
+      } else if (value === 'liyue') {
+        liyueSubSelect.style.display = 'block';
+        switchMap('liyue1');
+      } else if (value === 'mond') {
+        mondSubSelect.style.display = 'block';
+        switchMap('mond');
+      } else {
+        switchMap(value);
+      }
+    }
+
+    function switchMap(mapName) {
+      currentMap = mapName;
+      if (overlay) map.removeLayer(overlay);
+      const layerData = maps[mapName].layers[currentLayer];
+      const url = layerData.url || layerData.fallback || maps[mapName].layers.ground.url;
+      const size = layerData.size;
+      console.log(`Switching to map: ${mapName}, layer: ${currentLayer}, url: ${url}, size: ${size}`);
+      imageBounds = [[0, 0], [size[1], size[0]]];
+      overlay = L.imageOverlay(url, imageBounds).addTo(map);
+      overlay.on('error', () => {
+        console.error(`Failed to load image: ${url}`);
+        alert(`マップ画像（${url}）の読み込みに失敗しました。画像を確認してください。`);
+      });
+      map.setMaxBounds(imageBounds);
+      map.fitBounds(imageBounds);
+      loadMarkers();
+    }
+
+    function switchLayer(layerName) {
+      currentLayer = layerName;
+      switchMap(currentMap);
+    }
+
+    function setCurrentType(type) {
+      currentType = type;
+    }
+
+    function updateCounts() {
+      counts = {
+        hujin: 0,
+        takara_hutu: 0,
+        takara_seikou: 0,
+        takara_kityou: 0,
+        takara_gouka: 0,
+        takara_tinnmyou: 0
+      };
+      let totalMarks = 0;
+
+      markerLayer.eachLayer(layer => {
+        const type = layer.options.customType;
+        if (counts.hasOwnProperty(type)) {
+          counts[type]++;
+          totalMarks += markValues[type] || 0;
+        }
+      });
+
+      document.getElementById('hujin-count').textContent = counts.hujin;
+      document.getElementById('takara-hutu-count').textContent = counts.takara_hutu;
+      document.getElementById('takara-seikou-count').textContent = counts.takara_seikou;
+      document.getElementById('takara-kityou-count').textContent = counts.takara_kityou;
+      document.getElementById('takara-gouka-count').textContent = counts.takara_gouka;
+      document.getElementById('takara-tinnmyou-count').textContent = counts.takara_tinnmyou;
+      document.getElementById('total-marks').textContent = totalMarks;
+    }
+
+    function saveMarkers() {
+      const markers = [];
+      markerLayer.eachLayer(layer => {
+        markers.push({
+          lat: layer.getLatLng().lat,
+          lng: layer.getLatLng().lng,
+          type: layer.options.customType || 'hujin',
+          videoUrl: layer.options.videoUrl || '',
+          notes: layer.options.notes || '',
+          layer: layer.options.layer || 'ground'
+        });
+      });
+      localStorage.setItem(`mapMarkers_${currentMap}_${currentLayer}`, JSON.stringify(markers));
+      updateCounts();
+    }
+
+    function loadMarkers() {
+      markerLayer.clearLayers();
+      const stored = localStorage.getItem(`mapMarkers_${currentMap}_${currentLayer}`);
+      if (stored) {
+        const markers = JSON.parse(stored);
+        markers.forEach(m => {
+          const icon = createNumberedIcon(m.type, '', baseIconSize * Math.min(map.getZoomScale(map.getZoom(), 0), 1.5));
+          const marker = L.marker([m.lat, m.lng], { 
+            icon,
+            customType: m.type,
+            videoUrl: m.videoUrl,
+            notes: m.notes,
+            layer: m.layer
+          }).addTo(markerLayer);
+          marker.options.customType = m.type;
+          marker.options.videoUrl = m.videoUrl;
+          marker.options.notes = m.notes;
+          marker.options.layer = m.layer;
+          if (m.videoUrl) {
+            marker.on('click', () => showVideoPopup(m.videoUrl, m.notes));
+          }
+        });
+      }
+      updateCounts();
+    }
+
+    function extractYouTubeId(url) {
+      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    }
+
+    function showVideoPopup(videoUrl, notes) {
+      const existingPopup = document.querySelector('.video-popup');
+      if (existingPopup) existingPopup.remove();
+
+      const videoId = extractYouTubeId(videoUrl);
+      if (!videoId) {
+        alert('有効なYouTube動画URLを入力してください。');
+        return;
+      }
+
+      const popup = document.createElement('div');
+      popup.className = 'video-popup';
+      popup.innerHTML = `
+        <button class="close-button">閉じる</button>
+        <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <div class="notes">${notes ? notes.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '備考なし'}</div>
+      `;
+      document.body.appendChild(popup);
+
+      popup.querySelector('.close-button').addEventListener('click', () => {
+        popup.remove();
+      });
+    }
+
+    function exportMarkers() {
+      const allMarkers = {};
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('mapMarkers_'))
+        .forEach(key => {
+          allMarkers[key] = JSON.parse(localStorage.getItem(key));
+        });
+      const blob = new Blob([JSON.stringify(allMarkers, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mapMarkers.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importMarkers(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const markers = JSON.parse(e.target.result);
+        Object.keys(markers).forEach(key => {
+          localStorage.setItem(key, JSON.stringify(markers[key]));
+        });
+        loadMarkers();
+      };
+      reader.readAsText(file);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const controls = document.querySelector('.controls');
+      const exportButton = document.createElement('button');
+      exportButton.textContent = 'ピンデータをエクスポート';
+      exportButton.onclick = exportMarkers;
+      controls.appendChild(exportButton);
+
+      const importInput = document.createElement('input');
+      importInput.type = 'file';
+      importInput.accept = '.json';
+      importInput.onchange = importMarkers;
+      controls.appendChild(importInput);
+
+      fetch('data/mapMarkers.json')
+        .then(response => response.json())
+        .then(markers => {
+          Object.keys(markers).forEach(key => {
+            localStorage.setItem(key, JSON.stringify(markers[key]));
+          });
+          loadMarkers();
+        })
+        .catch(error => console.log('No default markers found:', error));
+    });
+
+    map.on('zoomend', updateMarkerIcons);
+
+    function updateMarkerIcons() {
+      markerLayer.eachLayer(layer => {
+        const type = layer.options.customType;
+        const icon = createNumberedIcon(type, '', baseIconSize * Math.min(map.getZoomScale(map.getZoom(), 0), 1.5));
+        layer.setIcon(icon);
+      });
+    }
+
+    map.on('click', function (e) {
+      const { lat, lng } = e.latlng;
+
+      if (lat < imageBounds[0][0] || lat > imageBounds[1][0] ||
+          lng < imageBounds[0][1] || lng > imageBounds[1][1]) {
+        return;
+      }
+
+      let removed = false;
+
+      const clickDistance = 5;
+
+      markerLayer.eachLayer(layer => {
+        if (map.distance(layer.getLatLng(), e.latlng) < clickDistance) {
+          if (layer.options.videoUrl) {
+            showVideoPopup(layer.options.videoUrl, layer.options.notes);
+          } else {
+            markerLayer.removeLayer(layer);
+            removed = true;
+          }
+        }
+      });
+
+      if (!removed) {
+        const videoUrl = prompt('YouTube動画URLを入力してください（キャンセルでスキップ）:');
+        const notes = prompt('備考を入力してください（キャンセルでスキップ）:');
+        const zoomScale = Math.min(Math.pow(map.getZoomScale(map.getZoom(), 0), 0.4), 1.5);
+        const icon = createNumberedIcon(currentType, '', baseIconSize * zoomScale);
+        const marker = L.marker([lat, lng], { 
+          icon,
+          customType: currentType,
+          videoUrl: videoUrl || '',
+          notes: notes || '',
+          layer: currentLayer
+        }).addTo(markerLayer);
+        marker.options.customType = currentType;
+        marker.options.videoUrl = videoUrl || '';
+        marker.options.notes = notes || '';
+        marker.options.layer = currentLayer;
+        if (videoUrl) {
+          marker.on('click', () => showVideoPopup(videoUrl, notes));
+        }
+      }
+      saveMarkers();
+    });
+
+    switchMap('mond');
+  </script>
+</body>
+</html>

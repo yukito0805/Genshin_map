@@ -1,0 +1,46 @@
+function exportMarkers() {
+  const allMarkers = {};
+  Object.keys(localStorage)
+    .filter(key => key.startsWith('mapMarkers_'))
+    .forEach(key => {
+      allMarkers[key] = JSON.parse(localStorage.getItem(key));
+    });
+  const blob = new Blob([JSON.stringify(allMarkers, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mapMarkers.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importMarkers(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const markers = JSON.parse(e.target.result);
+    Object.keys(markers).forEach(key => {
+      localStorage.setItem(key, JSON.stringify(markers[key]));
+    });
+    loadMarkers();
+  };
+  reader.readAsText(file);
+}
+
+// エクスポートボタンとインポート入力の追加
+document.addEventListener('DOMContentLoaded', () => {
+  const controls = document.querySelector('.controls');
+  const exportButton = document.createElement('button');
+  exportButton.textContent = 'ピンデータをエクスポート';
+  exportButton.style.margin = '5px';
+  exportButton.onclick = exportMarkers;
+  controls.appendChild(exportButton);
+
+  const importInput = document.createElement('input');
+  importInput.type = 'file';
+  importInput.accept = '.json';
+  importInput.style.margin = '5px';
+  importInput.onchange = importMarkers;
+  controls.appendChild(importInput);
+});
