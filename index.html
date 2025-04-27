@@ -115,7 +115,7 @@
       text-align: center;
     }
 
-    .video-popup {
+    .image-popup {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -133,14 +133,13 @@
       align-items: center;
     }
 
-    .video-popup iframe {
+    .image-popup img {
       max-width: 100%;
       max-height: 60vh;
-      width: 560px;
-      height: 315px;
+      object-fit: contain;
     }
 
-    .video-popup .notes {
+    .image-popup .notes {
       margin-top: 10px;
       font-size: 14px;
       max-width: 100%;
@@ -148,7 +147,7 @@
       text-align: left;
     }
 
-    .video-popup .close-button {
+    .image-popup .close-button {
       position: absolute;
       top: 10px;
       right: 10px;
@@ -160,7 +159,7 @@
       font-size: 14px;
     }
 
-    .video-popup .close-button:hover {
+    .image-popup .close-button:hover {
       background: #e0e0e0;
     }
 
@@ -197,18 +196,16 @@
       .total-marks {
         font-size: 12px;
       }
-      .video-popup {
+      .image-popup {
         padding: 10px;
       }
-      .video-popup iframe {
+      .image-popup img {
         max-height: 50vh;
-        width: 100%;
-        height: calc(100vw * 9 / 16);
       }
-      .video-popup .notes {
+      .image-popup .notes {
         font-size: 12px;
       }
-      .video-popup .close-button {
+      .image-popup .close-button {
         font-size: 12px;
         padding: 3px 8px;
       }
@@ -269,6 +266,7 @@
       <option value="inazuma2">稲妻2</option>
       <option value="amakumo">天雲峠</option>
       <option value="sangonomiya">海祇島</option>
+      <option value="turumi">鶴見</option>
     </select>
     <strong>レイヤー選択：</strong>
     <select id="layer-select" onchange="switchLayer(this.value)">
@@ -362,6 +360,14 @@
           underground2: { url: 'images/sangonomiya_underground2.png', size: [2262, 1519] }
         }
       },
+      turumi: { 
+        layers: {
+          sky: { url: 'images/turumi.png', size: [1845, 1882] },
+          ground: { url: 'images/turumi.png', size: [1845, 1882] },
+          underground1: { url: 'images/turumichika.png', size: [1720, 1069] },
+          underground2: { url: 'images/turumichika2.png', size: [1320, 921] }
+        }
+      },
       sumeru: { 
         layers: {
           sky: { url: 'images/sumeru_sky.jpg', size: [3000, 1722] },
@@ -418,7 +424,7 @@
         if (currentMap === 'mond') imageUrl = 'images/hujin.jpg';
         else if (currentMap === 'dragonspine') imageUrl = 'images/Crimson_Agate.jpg';
         else if (currentMap === 'chenyu') imageUrl = 'images/Spirit_Carp.jpg';
-        else if (['inazuma', 'inazuma2', 'amakumo', 'sangonomiya'].includes(currentMap)) {
+        else if (['inazuma', 'inazuma2', 'amakumo', 'sangonomiya', 'turumi'].includes(currentMap)) {
           imageUrl = 'images/inazumahitomi.png';
         } else {
           imageUrl = 'images/iwagami.jpg';
@@ -489,6 +495,8 @@
 
     function switchMap(mapName) {
       currentMap = mapName;
+      currentLayer = 'ground'; // マップ変更時に地上にリセット
+      document.getElementById('layer-select').value = 'ground'; // レイヤー選択UIを地上に
       if (overlay) map.removeLayer(overlay);
       const layerData = maps[mapName].layers[currentLayer];
       const url = layerData.url || layerData.fallback || maps[mapName].layers.ground.url;
@@ -507,7 +515,20 @@
 
     function switchLayer(layerName) {
       currentLayer = layerName;
-      switchMap(currentMap);
+      if (overlay) map.removeLayer(overlay);
+      const layerData = maps[currentMap].layers[currentLayer];
+      const url = layerData.url || layerData.fallback || maps[currentMap].layers.ground.url;
+      const size = layerData.size;
+      console.log(`Switching to layer: ${currentLayer}, url: ${url}, size: ${size}`);
+      imageBounds = [[0, 0], [size[1], size[0]]];
+      overlay = L.imageOverlay(url, imageBounds).addTo(map);
+      overlay.on('error', () => {
+        console.error(`Failed to load image: ${url}`);
+        alert(`マップ画像（${url}）の読み込みに失敗しました。画像を確認してください。`);
+      });
+      map.setMaxBounds(imageBounds);
+      map.fitBounds(imageBounds);
+      loadMarkers();
     }
 
     function setCurrentType(type) {
@@ -517,7 +538,7 @@
     function updateCounts() {
       counts = {
         hujin: 0,
-        takara_hutu: 0,
+        taakara_hutu: 0,
         takara_seikou: 0,
         takara_kityou: 0,
         takara_gouka: 0,
@@ -549,7 +570,7 @@
           lat: layer.getLatLng().lat,
           lng: layer.getLatLng().lng,
           type: layer.options.customType || 'hujin',
-          videoUrl: layer.options.videoUrl || '',
+          imageUrl: layer.options.imageUrl || '',
           notes: layer.options.notes || '',
           layer: layer.options.layer || 'ground'
         });
@@ -568,50 +589,49 @@
           const marker = L.marker([m.lat, m.lng], { 
             icon,
             customType: m.type,
-            videoUrl: m.videoUrl,
+            imageUrl: m.imageUrl,
             notes: m.notes,
             layer: m.layer
           }).addTo(markerLayer);
           marker.options.customType = m.type;
-          marker.options.videoUrl = m.videoUrl;
+          marker.options.imageUrl = m.imageUrl;
           marker.options.notes = m.notes;
           marker.options.layer = m.layer;
-          if (m.videoUrl) {
-            marker.on('click', () => showVideoPopup(m.videoUrl, m.notes));
+          if (m.imageUrl) {
+            marker.on('click', () => showImagePopup(m.imageUrl, m.notes));
           }
         });
       }
       updateCounts();
     }
 
-    function extractYouTubeId(url) {
-      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-
-    function showVideoPopup(videoUrl, notes) {
-      const existingPopup = document.querySelector('.video-popup');
+    function showImagePopup(imageUrl, notes) {
+      const existingPopup = document.querySelector('.image-popup');
       if (existingPopup) existingPopup.remove();
 
-      const videoId = extractYouTubeId(videoUrl);
-      if (!videoId) {
-        alert('有効なYouTube動画URLを入力してください。');
+      if (!imageUrl.match(/\.(jpg|jpeg|png|gif)$/i)) {
+        alert('有効な画像URL（jpg, png, gif）を入力してください。');
         return;
       }
 
       const popup = document.createElement('div');
-      popup.className = 'video-popup';
+      popup.className = 'image-popup';
       popup.innerHTML = `
         <button class="close-button">閉じる</button>
-        <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        <div class="notes">${notes ? notes.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '備考なし'}</div>
+        <img src="${imageUrl}" alt="ピンの画像" />
+        <div class="notes">${notes ? notes.replace(/\n/g, '<br>').replace(/</g, '<').replace(/>/g, '>') : '備考なし'}</div>
       `;
       document.body.appendChild(popup);
 
       popup.querySelector('.close-button').addEventListener('click', () => {
         popup.remove();
       });
+
+      const img = popup.querySelector('img');
+      img.onerror = () => {
+        alert('画像を読み込めませんでした。URLを確認してください。');
+        popup.remove();
+      };
     }
 
     function exportMarkers() {
@@ -692,8 +712,8 @@
 
       markerLayer.eachLayer(layer => {
         if (map.distance(layer.getLatLng(), e.latlng) < clickDistance) {
-          if (layer.options.videoUrl) {
-            showVideoPopup(layer.options.videoUrl, layer.options.notes);
+          if (layer.options.imageUrl) {
+            showImagePopup(layer.options.imageUrl, layer.options.notes);
           } else {
             markerLayer.removeLayer(layer);
             removed = true;
@@ -702,23 +722,23 @@
       });
 
       if (!removed) {
-        const videoUrl = prompt('YouTube動画URLを入力してください（キャンセルでスキップ）:');
+        const imageUrl = prompt('Web上の画像URLを入力してください（キャンセルでスキップ）:');
         const notes = prompt('備考を入力してください（キャンセルでスキップ）:');
         const zoomScale = Math.min(Math.pow(map.getZoomScale(map.getZoom(), 0), 0.4), 1.5);
         const icon = createNumberedIcon(currentType, '', baseIconSize * zoomScale);
         const marker = L.marker([lat, lng], { 
           icon,
           customType: currentType,
-          videoUrl: videoUrl || '',
+          imageUrl: imageUrl || '',
           notes: notes || '',
           layer: currentLayer
         }).addTo(markerLayer);
         marker.options.customType = currentType;
-        marker.options.videoUrl = videoUrl || '';
+        marker.options.imageUrl = imageUrl || '';
         marker.options.notes = notes || '';
         marker.options.layer = currentLayer;
-        if (videoUrl) {
-          marker.on('click', () => showVideoPopup(videoUrl, notes));
+        if (imageUrl) {
+          marker.on('click', () => showImagePopup(imageUrl, notes));
         }
       }
       saveMarkers();
