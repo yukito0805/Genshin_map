@@ -1288,6 +1288,7 @@ const eventData = {
                 { date: "2025年8月30日 (土)", venue: "大須観音会場", time: "13:36頃" },
                 { date: "2025年8月30日 (土)", venue: "名古屋城会場", time: "15:36頃" },
                 { date: "2025年8月30日 (土)", venue: "オアシス21会場", time: "17:24頃" },
+                { date: "2025年8月31日 (日)", venue: "イオンモール熱田会場", time: "11:00頃" },
                 { date: "2025年8月31日 (日)", venue: "イオンモール熱田会場", time: "11:48頃" },
                 { date: "2025年8月31日 (日)", venue: "ナディアパーク矢場公園会場", time: "13:48頃" },
                 { date: "2025年8月31日 (日)", venue: "ぐるめぱーく会場", time: "15:48頃" }
@@ -2785,3 +2786,4 @@ venueList.addEventListener("click", (event) => {
 
 
 window.addEventListener("load", loadInitialDisplay);
+
