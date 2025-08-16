@@ -1,0 +1,222 @@
+body {
+    font-family: 'Segoe UI', 'Noto Sans JP', sans-serif;
+    background: linear-gradient(135deg, #e0e7ff, #a7f3d0);
+    margin: 0;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    box-sizing: border-box;
+    font-size: 1.1em;
+}
+
+.container {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+label {
+    display: block;
+    margin: 14px 0 8px;
+    font-weight: bold;
+    color: #2d3748;
+    font-size: 1.2em;
+}
+
+input[type="text"],
+.schedule-list {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1.2em;
+    line-height: 1.6;
+    min-height: 48px;
+    box-sizing: border-box;
+    background-color: #f7fafc;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus {
+    border-color: #4c51bf;
+    box-shadow: 0 0 8px rgba(76, 81, 191, 0.3);
+    outline: none;
+}
+
+.schedule-list {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.schedule-list div,
+.venue-option {
+    padding: 10px;
+    font-size: 1.1em;
+    line-height: 1.6;
+    background: #fff;
+    color: #2d3748;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.schedule-list div:hover,
+.venue-option:hover {
+    background-color: #edf2f7;
+}
+
+.venue-option.selected {
+    background-color: #4c51bf;
+    color: white;
+}
+
+.checkbox-list {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #f7fafc;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.checkbox-list label {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    font-size: 1.1em;
+    cursor: pointer;
+}
+
+.checkbox-list input[type="checkbox"] {
+    margin-right: 12px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+}
+
+.checkbox-list input[type="checkbox"]:checked {
+    accent-color: #4c51bf;
+}
+
+.team-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#favoriteButton {
+    padding: 12px;
+    background-color: #4c51bf;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+#favoriteButton:hover {
+    background-color: #3b46a3;
+}
+
+#favoriteButton.favorited {
+    background-color: #f6e05e;
+    color: #2d3748;
+}
+
+.schedule-list {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #f7fafc;
+    padding: 12px;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+.schedule-list div {
+    margin: 10px 0;
+    padding: 10px;
+    line-height: 1.6;
+    white-space: normal;
+}
+
+.schedule-list div.friday {
+    background-color: #fefcbf;
+}
+
+.schedule-list div.saturday {
+    background-color: #bee3f8;
+}
+
+.schedule-list div.sunday {
+    background-color: #fed7d7;
+}
+
+/* モバイル対応 */
+@media (max-width: 430px) {
+    body {
+        padding: 5px;
+        font-size: 1em;
+    }
+
+    .container {
+        padding: 12px;
+        width: 98%;
+    }
+
+    label {
+        font-size: 1.1em;
+    }
+
+    input[type="text"],
+    .schedule-list,
+    #favoriteButton {
+        font-size: 1.1em;
+        padding: 10px;
+        min-height: 44px;
+    }
+
+    .schedule-list {
+        max-height: 160px;
+    }
+
+    .checkbox-list {
+        max-height: 140px;
+        padding: 10px;
+    }
+
+    .checkbox-list label {
+        font-size: 1em;
+    }
+
+    .checkbox-list input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+
+    .schedule-list {
+        max-height: 220px;
+        font-size: 1em;
+        padding: 10px;
+    }
+
+    .schedule-list div,
+    .venue-option {
+        margin: 8px 0;
+        padding: 8px;
+    }
+}
