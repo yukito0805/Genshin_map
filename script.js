@@ -2475,7 +2475,7 @@ function updateSchedules(selectedTeams) {
     } else {
         combinedSchedules.forEach(({ teamName, schedule }) => {
             const div = document.createElement("div");
-            div.innerHTML = `${schedule.date} ${schedule.time} ${teamName}<br>${schedule.venue}`;
+            div.innerHTML = `${schedule.date} ${schedule.time} <br>${teamName}<br>${schedule.venue}`;
             if (schedule.date.includes("8月29日")) {
                 div.classList.add("friday");
             } else if (schedule.date.includes("8月30日")) {
@@ -2782,5 +2782,6 @@ venueList.addEventListener("click", (event) => {
         filteredTeamList.appendChild(div);
     });
 });
+
 
 window.addEventListener("load", loadInitialDisplay);
